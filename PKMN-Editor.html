@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKMN-Editor</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			overflow: hidden; /* To prevent scrollbars due to margin and padding */
+		}
+		
+		header {
+			background-color: #333;
+			color: white;
+			text-align: center;
+		}
+
+		.left-section, #right-section {
+			width: 50%;
+			float: left;
+			background-color: #f0f0f0;
+			height: calc(100vh - 21px); /* Make it full height minus header height */
+			overflow-y: scroll;
+		}
+
+		#right-section {
+			background-color: #e0e0e0;
+		}
+		
+        li:hover {
+            cursor: pointer;
+            background-color: #e0e0e0; /* Change background color on hover */
+        }
+		
+		#selectedTypes {
+			display: inline-block;
+		}
+		
+		#Types option[value=""] {
+            display: none;
+        }
+		
+		table {
+			border-collapse: collapse;
+		}
+
+		th, td {
+			border: 1px solid #000;
+			padding: 1px;
+			text-align: left;
+		}
+
+		th {
+			background-color: #f2f2f2;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<input type="file" id="fileInput" onchange="readFile()" />
+		<button onclick="changeEditor(0)">Pokemons</button>
+		<button onclick="changeEditor(1)">Types</button>
+		<button onclick="changeEditor(2)">Moves</button>
+		<button onclick="alert('Doesn\'t work as of right now.')">Abilities</button>
+	</header>
+	
+	<div class="left-section">
+		<div id="list-items"></div>
+	</div>
+	
+	<div id="right-section">
+		<div id="pokemon-editor">
+			<label for="selectedPokemon">Selected Pokemon:</label> <input type="number" id="selectedPokemon" min="0" max="0" onchange="editPokemon(this.value)">
+			<button id="savePokemon" onclick="savePokemon()">Apply Changes</button>
+			<br>
+			<label for="Name">Name:</label> <input type="text" id="Name" onchange="currentPokemon.name = this.value">
+			<br>
+			<label for="Types">Types:</label> <div id="selectedTypes"></div>
+			<select id="Types" name="Types" onchange="addTypeToPkmn(parseInt(this.value))">
+				<option value="" disabled selected>Select a Type</option>
+			</select>
+			<br>
+			<label for="HP">Health Points:</label> <input type="number" id="HP" value="0" onchange="currentPokemon.stats[0] = this.value">
+			<br>
+			<label for="Atk">Attack:</label> <input type="number" id="Atk" value="0" onchange="currentPokemon.stats[1] = this.value">
+			<br>
+			<label for="Def">Defense:</label> <input type="number" id="Def" value="0" onchange="currentPokemon.stats[2] = this.value">
+			<br>
+			<label for="SpA">Special Attack:</label> <input type="number" id="SpA" value="0" onchange="currentPokemon.stats[3] = this.value">
+			<br>
+			<label for="SpD">Special Defense:</label> <input type="number" id="SpD" value="0" onchange="currentPokemon.stats[4] = this.value">
+			<br>
+			<label for="Spe">Speed:</label> <input type="number" id="Spe" value="0" onchange="currentPokemon.stats[5] = this.value">
+			<br>
+			<button id="addPokemon" onclick="addPokemon()">Add Pokemon</button> <button id="removePokemon" onclick="removePokemon()">Remove Pokemon</button>
+		</div>
+		<div id="type-editor">
+			<label for="selectedType">Selected Type:</label> <input type="number" id="selectedType" min="0" onchange="editType(this.value)">
+			<button id="addType" onclick="addType()">Add a Type</button> <button id="removeType" onclick="removeType()">Remove Type</button>
+			<br>
+			<label for="typeName">Name:</label> <input type="text" id="typeName" onchange="type_def[selectedTypeIndx][0] = this.value">
+			<div id="type-editor-types"></div>
+		</div>
+		<div id="move-editor">
+			<label for="move_name">Name:</label> <input type="text" id="move_name" onchange="">
+			<br>
+			<label for="move_power">Power:</label> <input type="number" id="move_power" value="0" onchange="">
+			<br>
+			<label for="move_accuracy">Accuracy:</label> <input type="number" id="move_accuracy" value="0" onchange="">
+			<br>
+			<label for="move_priority">Priority:</label> <input type="number" id="move_priority" value="0" onchange="">
+			<br>
+			<label for="move_power_points">Power Points:</label> <input type="number" id="move_power_points" value="0" onchange="">
+			<table>
+				<tbody>
+					<thead>
+						<tr>
+							<th colspan="2">Change stat stages by</th>
+						</tr>
+					</thead>
+					<tr>
+						<th>Attack</th>
+						<td><input type="number" id="change_attack" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Defense</th>
+						<td><input type="number" id="change_defense" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Special Attack</th>
+						<td><input type="number" id="change_special_attack" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Special Defense</th>
+						<td><input type="number" id="change_special_defense" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Speed</th>
+						<td><input type="number" id="change_speed" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Evasion</th>
+						<td><input type="number" id="change_evasion" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+					<tr>
+						<th>Accuracy</th>
+						<td><input type="number" id="change_accuracy" value="0" min="-6" max="6" onchange=""></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+    <script>
+		// document.getElementById('list-items').children[selectedTypeIndx].textContent = this.value;
+		
+		let type_def = [
+			['Normal',   [1, 1, 1, 1, 1, 1, 2, 1, 1,
+						  1, 1, 1, 1, 0, 1, 1, 1, 1]],
+			['Fire',     [1, .5, 2, 1, .5, .5, 1, 1, 2,
+						  1, 1, .5, 2, 1, 1, 1, .5, .5]],
+			['Water',    [1, .5, .5, 2, 2, .5, 1, 1, 1,
+						  1, 1, 1, 1, 1, 1, 1, .5, 1]],
+			['Electric', [1, 1, 1, .5, 1, 1, 1, 1, 2,
+						  .5, 1, 1, 1, 1, 1, 1, .5, 1]],
+			['Grass',    [1, 2, .5, .5, .5, 2, 1, 2, .5,
+						  2, 1, 2, 1, 1, 1, 1, 1, 1]],
+			['Ice',      [1, 2, 1, 1, 1, .5, 2, 1, 1,
+						  1, 1, 1, 2, 1, 1, 1, 2, 1]],
+			['Fighting', [1, 1, 1, 1, 1, 1, 1, 1, 1,
+						  2, 2, .5, .5, 1, 1, .5, 1, 2]],
+			['Poison',   [1, 1, 1, 1, .5, 1, .5, .5, 2,
+						  1, 2, .5, 1, 1, 1, 1, 1, .5]],
+			['Ground',   [1, 1, 2, 0, 2, 2, 1, .5, 1,
+						  1, 1, 1, .5, 1, 1, 1, 1, 1]],
+			['Flying',   [1, 1, 1, 2, .5, 2, .5, 1, 0,
+						  1, 1, .5, 2, 1, 1, 1, 1, 1]],
+			['Psychic',  [1, 1, 1, 1, 1, 1, .5, 1, 1,
+						  1, .5, 2, 1, 2, 1, 2, 1, 1]],
+			['Bug',      [1, 2, 1, 1, .5, 1, .5, 1, .5,
+						  2, 1, 1, 2, 1, 1, 1, 1, 1]],
+			['Rock',     [.5, .5, 2, 1, 2, 1, 2, .5, 2,
+						  .5, 1, 1, 1, 1, 1, 1, 2, 1]],
+			['Ghost',    [0, 1, 1, 1, 1, 1, 0, .5, 1,
+						  1, 1, .5, 1, 2, 1, 2, 1, 1]],
+			['Dragon',   [1, .5, .5, .5, .5, 2, 1, 1, 1,
+						  1, 1, 1, 1, 1, 2, 1, 1, 2]],
+			['Dark',     [1, 1, 1, 1, 1, 1, 2, 1, 1,
+						  1, 0, 2, 1, .5, 1, .5, 1, 2]],
+			['Steel',    [.5, 2, 1, 1, .5, .5, 2, 0, 2,
+						  .5, .5, .5, .5, 1, .5, 1, .5, .5]],
+			['Fairy',    [1, 1, 1, 1, 1, 1, .5, 2, 1,
+						  1, 1, .5, 1, 1, 0, .5, 2, 1]]
+		];
+		
+		let pkmn_moves = [];
+		
+		class Pokemon {
+			constructor() {
+				this.name = '';
+				this.types = [];
+				this.ability = [];
+				this.hidabil = -1;
+				this.stats = Array(6).fill(0);
+			}
+		}
+		
+		let pkmns = [];
+		
+		let currentPkmnIndx = null; // should be selected pokemon index
+		let currentPokemon = new Pokemon();
+		
+		let selectedTypeIndx = 0;
+		
+		let editor = 0;
+		
+		function changeEditor(changeToEditor) {
+			editor = changeToEditor;
+			updateList();
+			const editorDiv = document.getElementById('right-section');
+			for (const element of editorDiv.children) {element.style.display = 'none';} // hides all editors
+			
+			const names = ['pokemon-editor', 'type-editor', 'move-editor'];
+			document.getElementById(names[editor]).style.display = ''; // shows proper editor
+		}
+		
+		function addPokemon() {
+			document.getElementById("selectedPokemon").max = pkmns.length;
+			currentPkmnIndx = pkmns.length;
+			//pkmns.push(_.cloneDeep(currentPokemon));
+			pkmns.push(structuredClone(currentPokemon));
+			updateList();
+			editPokemon();
+		}
+		
+		function removePokemon() {
+			pkmns.splice(currentPkmnIndx, 1);
+			currentPkmnIndx = Math.min(currentPkmnIndx, pkmns.length - 1);
+			document.getElementById("selectedPokemon").max = pkmns.length - 1;
+			updateList();
+			editPokemon();
+		}
+		
+		function updateTypes() {
+			// update shown types the pokemon has
+			const typesDiv = document.getElementById('selectedTypes');
+			typesDiv.innerHTML = ''; // reset html list
+			for (let i = 0; i < currentPokemon.types.length; i++) {
+				const tmp = document.createElement('button');
+				tmp.onclick = function() {removeTypeFromPkmn(currentPokemon.types[i]);};
+				tmp.textContent = type_def[currentPokemon.types[i]][0];
+				typesDiv.appendChild(tmp);
+			}
+			
+			// update the types the user can select
+			const typeSelector = document.getElementById('Types');
+			let tmp = typeSelector[0];
+			typeSelector.innerHTML = '';
+			typeSelector.appendChild(tmp);
+			const filteredList = Array.from({ length: type_def.length }, (_, index) => index).filter(x => !currentPokemon.types.includes(x));
+			for (let i = 0; i < filteredList.length; i++) {
+				tmp = document.createElement('option');
+				tmp.value = filteredList[i];
+				tmp.textContent = type_def[filteredList[i]][0];
+				typeSelector.appendChild(tmp);
+			}
+		}
+		
+		function updateTypeEditor() {
+			const typeEditor = document.getElementById('type-editor-types');
+			typeEditor.innerHTML = ''; // reset html list
+			for (let i = 0; i < type_def.length; i++) {
+				const tmp = document.createElement('label');
+				tmp.setAttribute("for", "typeAbsorbRate" + i);
+				tmp.textContent = type_def[i][0] + ':';
+				typeEditor.appendChild(tmp);
+				
+				const tmp2 = document.createElement('input');
+				tmp2.id = "typeAbsorbRate" + i;
+				tmp2.type = "number";
+				tmp2.value = type_def[selectedTypeIndx][1][i];
+				tmp2.onchange = function() {type_def[selectedTypeIndx][1][i] = this.value;};
+				typeEditor.appendChild(tmp2);
+				
+				typeEditor.appendChild(document.createElement('br'));
+			}
+		}
+		
+		function addType() {
+			selectedTypeIndx = type_def.length;
+			type_def.push(['', Array(type_def.length).fill(1)]);
+			for (let i = 0; i < type_def.length; i++) {
+				type_def[i][1].push(1);
+			}
+			updateList();
+			updateTypeEditor();
+			updateTypes();
+			editType();
+		}
+		
+		function removeType() {
+			type_def.splice(selectedTypeIndx, 1);
+			selectedTypeIndx = Math.min(selectedTypeIndx, type_def.length - 1);
+			updateList();
+			updateTypeEditor();
+			updateTypes();
+			editType();
+		}
+		
+		function addTypeToPkmn(typeToAdd) {
+			currentPokemon.types.push(typeToAdd);
+			updateTypes();
+			document.getElementById('Types').selectedIndex = 0;
+		}
+		
+		function removeTypeFromPkmn(typeToRemove) {
+			// removes the type from current pokemon's types
+			const indexToRemove = currentPokemon.types.indexOf(typeToRemove);
+			if (indexToRemove !== -1) {
+				currentPokemon.types.splice(indexToRemove, 1);
+			}
+			
+			updateTypes();
+		}
+		
+		function savePokemon() {
+			if (pkmns.length > currentPkmnIndx && currentPkmnIndx >= 0) {
+				pkmns[currentPkmnIndx] = currentPokemon;
+				updateList();
+			} else {
+				alert(`Pokemon ${currentPkmnIndx} does not exist.`);
+			}
+		}
+		
+		function editPokemon(pokemonIndex = currentPkmnIndx) {
+			currentPkmnIndx = pokemonIndex;
+			//currentPokemon = _.cloneDeep(pkmns[currentPkmnIndx]);
+			if (pkmns.length > currentPkmnIndx && currentPkmnIndx >= 0) {
+				currentPokemon = structuredClone(pkmns[currentPkmnIndx]);
+				
+				document.getElementById("selectedPokemon").value = currentPkmnIndx;
+				document.getElementById("Name").value = currentPokemon.name;
+				
+				updateTypes();
+				
+				document.getElementById("HP").value = currentPokemon.stats[0];
+				document.getElementById("Atk").value = currentPokemon.stats[1];
+				document.getElementById("Def").value = currentPokemon.stats[2];
+				document.getElementById("SpA").value = currentPokemon.stats[3];
+				document.getElementById("SpD").value = currentPokemon.stats[4];
+				document.getElementById("Spe").value = currentPokemon.stats[5];
+			} else {
+				currentPokemon = new Pokemon();
+				
+				document.getElementById("Name").value = "OUT OF RANGE";
+			}
+		}
+		
+		function editType(typeIndex = selectedTypeIndx) {
+			selectedTypeIndx = typeIndex;
+			
+			if (type_def.length > selectedTypeIndx && selectedTypeIndx >= 0) {
+				document.getElementById("typeName").value = type_def[selectedTypeIndx][0];
+				document.getElementById("selectedType").value = selectedTypeIndx;
+				for (let i = 0; i < type_def.length; i++) {
+					document.getElementById("typeAbsorbRate" + i).value = type_def[selectedTypeIndx][1][i];
+				}
+			}
+		}
+		
+		// updates html list
+		function updateList() {
+			const pokemonsDiv = document.getElementById('list-items');
+			pokemonsDiv.innerHTML = ''; // reset html list
+			switch (editor) {
+				case 0:
+					for (let i = 0; i < pkmns.length; i++) {
+						const pokemonName = pkmns[i].name;
+						const editLink = document.createElement('li');
+						editLink.onclick = function() {editPokemon(i);};
+						editLink.textContent = pokemonName + ', BST ' + pkmns[i].stats.reduce((accumulator, currentValue) => accumulator + parseInt(currentValue), 0);
+						pokemonsDiv.appendChild(editLink);
+					} break;
+				case 1:
+					for (let i = 0; i < type_def.length; i++) {
+						const typeName = type_def[i][0];
+						const editLink = document.createElement('li');
+						editLink.onclick = function() {editType(i);};
+						editLink.textContent = typeName;
+						pokemonsDiv.appendChild(editLink);
+					} break;
+				case 2:
+					for (let i = 0; i < pkmn_moves.length; i++) {
+						const typeName = pkmn_moves[i][0];
+						const editLink = document.createElement('li');
+						editLink.onclick = function() {editType(i);};
+						editLink.textContent = typeName;
+						pokemonsDiv.appendChild(editLink);
+					} break;
+			}
+		}
+		
+        function readFile() {
+            // Get the input element and selected file
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+				pkmns = [];
+				
+                // Create a new FileReader
+                const reader = new FileReader();
+
+                // Set up the onload event handler
+                reader.onload = function (event) {
+                    // Access the result property, which contains the file's data as an ArrayBuffer
+                    const fileData = event.target.result;
+
+                    // Convert the ArrayBuffer to a Uint8Array for byte access
+                    const bytes = new Uint8Array(fileData);
+					
+					let i = 0;
+					while (bytes.length > i) {
+						let tmp = new Pokemon();
+
+						// name
+						while (bytes[i]) {
+							tmp.name += String.fromCharCode(bytes[i]);
+							i += 1;
+						}
+
+						i += 1; // Types
+						TypeLength = bytes[i] + 1;
+						for (let j = 0; j < TypeLength; j++) {
+							i += 1;
+							tmp.types.push(bytes[i]);
+						}
+
+						i += 1; // Abilities
+						let count = bytes[i]; i += 1;
+						for (let j = 0; j < (count >> 1) + 1; j++) {
+							tmp.ability.push(
+								new DataView(new Uint8Array(bytes.slice(i, i + 2)).buffer).getUint16(0, true)
+							);
+							i += 2;
+						}
+						if (count & 1) {
+							tmp.hidabil = new DataView(new Uint8Array(bytes.slice(i, i + 2)).buffer).getUint16(0, true);
+							i += 2;
+						}
+
+						// Stats
+						for (let k = 0; k < 6; k++) {
+							tmp.stats[k] = bytes[i + k];
+						}
+						i += 6;
+						
+						pkmns.push(tmp);
+					}
+					
+					document.getElementById("selectedPokemon").max = pkmns.length - 1;
+					document.getElementById("selectedPokemon").value = 0;
+					updateList();
+                };
+
+                // Read the file as an ArrayBuffer
+                reader.readAsArrayBuffer(file);
+            }
+        }
+		
+		// makes sure you can select types even when creating a new file
+		const typeSelector = document.getElementById('Types');
+		for (let i = 0; i < type_def.length; i++) {
+			const tmp = document.createElement('option');
+			tmp.value = i;
+			tmp.textContent = type_def[i][0];
+			typeSelector.appendChild(tmp);
+		}
+		
+		updateTypeEditor();
+		changeEditor(0);
+    </script>
+</body>
+</html>
